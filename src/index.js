@@ -1,12 +1,21 @@
 export default {
   async fetch(request) {
-    const url = new URL(request.url);
+    if (request.method !== 'POST') {
+      return new Response(JSON.stringify({ error: 'Use POST method' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
+    }
 
-    let length = parseInt(url.searchParams.get('length')) || 16;
-    const useUpper = url.searchParams.get('uppercase') !== 'false';
-    const useLower = url.searchParams.get('lowercase') !== 'false';
-    const useNumbers = url.searchParams.get('numbers') !== 'false';
-    const useSymbols = url.searchParams.get('symbols') === 'true';
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
+      return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    let length = parseInt(body.length) || 16;
+    const useUpper = body.uppercase !== false; // default true
+    const useLower = body.lowercase !== false; // default true
+    const useNumbers = body.numbers !== false; // default true
+    const useSymbols = body.symbols === true;  // default false
 
     if (length < 4) length = 4;
     if (length > 128) length = 128;
@@ -23,7 +32,7 @@ export default {
     if (useSymbols) charset += symbols;
 
     if (!charset) {
-      return new Response(JSON.stringify({ error: 'No character sets selected' }), { status: 400 });
+      return new Response(JSON.stringify({ error: 'No character sets selected' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
     const password = Array.from({ length }, () => charset[Math.floor(Math.random() * charset.length)]).join('');
